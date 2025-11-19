@@ -13,6 +13,7 @@ from sklearn.svm import SVC
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, roc_auc_score
 from sklearn.pipeline import Pipeline
+import joblib
 try:
     import xgboost as xgb
     XGBOOST_AVAILABLE = True
@@ -233,6 +234,18 @@ for name, model in models.items():
 
     print(f"{name} - Accuracy: {accuracy:.4f}, AUC: {auc_score:.4f}")
 
+# Ensure models directory exists
+import os
+os.makedirs('models', exist_ok=True)
+os.makedirs('visualizations', exist_ok=True)
+
+# Save all original models
+print("\nSaving original models...")
+for name, result in results.items():
+    model_filename = f"models/original_{name.replace(' ', '_').lower()}_model.pkl"
+    joblib.dump(result['model'], model_filename)
+    print(f"Saved {name} model to {model_filename}")
+
 # Also evaluate some models with Bag of Words features
 print("\nEvaluating selected models with Bag of Words features...")
 
@@ -265,6 +278,13 @@ for name in ['Logistic Regression', 'Multinomial Naive Bayes']:
         }
 
         print(f"{name} (BoW) - Accuracy: {accuracy_bow:.4f}, AUC: {auc_score_bow:.4f}")
+
+# Save Bag of Words models
+print("\nSaving Bag of Words models...")
+for name, result in bow_results.items():
+    model_filename = f"models/bow_{name.replace(' ', '_').lower()}_model.pkl"
+    joblib.dump(result['model'], model_filename)
+    print(f"Saved {name} (BoW) model to {model_filename}")
 
 # %%
 # ## Hyperparameter Tuning
@@ -359,6 +379,13 @@ for name, params in param_grids.items():
     print(f"{name} (Tuned) - Accuracy: {accuracy_tuned:.4f}, AUC: {auc_score_tuned:.4f}")
     print(f"Best parameters: {grid_search.best_params_}")
 
+# Save all tuned models
+print("\nSaving tuned models...")
+for name, result in tuned_results.items():
+    model_filename = f"models/tuned_{name.replace(' ', '_').lower()}_model.pkl"
+    joblib.dump(result['model'], model_filename)
+    print(f"Saved {name} (Tuned) model to {model_filename}")
+
 # %%
 # ## Model Comparison
 
@@ -370,7 +397,8 @@ for name, result in tuned_results.items():
         'Model': name,
         'Accuracy': result['accuracy'],
         'AUC Score': result['auc_score'],
-        'Type': 'Tuned'
+        'Type': 'Tuned',
+        'Best_Params': str(result.get('best_params', 'N/A'))
     })
 
 for name, result in results.items():
@@ -378,13 +406,53 @@ for name, result in results.items():
         'Model': name,
         'Accuracy': result['accuracy'],
         'AUC Score': result['auc_score'],
-        'Type': 'Original'
+        'Type': 'Original',
+        'Best_Params': 'N/A'
+    })
+
+# Also add Bag of Words results to comparison
+for name, result in bow_results.items():
+    comparison_data.append({
+        'Model': f"{name} (BoW)",
+        'Accuracy': result['accuracy'],
+        'AUC Score': result['auc_score'],
+        'Type': 'Bag of Words',
+        'Best_Params': 'N/A'
     })
 
 comparison_df = pd.DataFrame(comparison_data)
-
 print("\nModel Comparison:")
 print(comparison_df)
+
+# Save comparison table to CSV
+comparison_df.to_csv('model_comparison_results.csv', index=False)
+print("\nModel comparison results saved to 'model_comparison_results.csv'")
+
+# Create more detailed comparison tables
+original_vs_tuned_comparison = []
+for name in models.keys():
+    if name in results and name in tuned_results:
+        original_result = results[name]
+        tuned_result = tuned_results[name]
+        original_vs_tuned_comparison.append({
+            'Model': name,
+            'Original_Accuracy': original_result['accuracy'],
+            'Tuned_Accuracy': tuned_result['accuracy'],
+            'Original_AUC': original_result['auc_score'],
+            'Tuned_AUC': tuned_result['auc_score'],
+            'Accuracy_Improvement': tuned_result['accuracy'] - original_result['accuracy'],
+            'AUC_Improvement': tuned_result['auc_score'] - original_result['auc_score'],
+            'Best_Params': str(tuned_result.get('best_params', 'N/A'))
+        })
+
+if original_vs_tuned_comparison:
+    comparison_detail_df = pd.DataFrame(original_vs_tuned_comparison)
+    print("\nDetailed Model Comparison (Original vs Tuned):")
+    print(comparison_detail_df)
+
+    # Save detailed comparison to CSV
+    comparison_detail_df.to_csv('detailed_model_comparison.csv', index=False)
+    print("\nDetailed model comparison results saved to 'detailed_model_comparison.csv'")
 
 # Find the best model based on AUC score
 best_model_name = comparison_df.loc[comparison_df['AUC Score'].idxmax()]['Model']
@@ -411,6 +479,93 @@ else:
 
 print(classification_report(y_test, best_predictions))
 
+# Create model performance comparison visualizations
+print("\nCreating model performance comparison visualizations...")
+
+# Create a bar plot for accuracy comparison
+plt.figure(figsize=(12, 8))
+comparison_df_sorted = comparison_df.sort_values('Accuracy', ascending=True)
+plt.subplot(2, 1, 1)
+bars1 = plt.barh(range(len(comparison_df_sorted)), comparison_df_sorted['Accuracy'],
+                 color=['red' if 'Original' in t else 'blue' if 'Tuned' in t else 'green'
+                        for t in comparison_df_sorted['Type']])
+plt.yticks(range(len(comparison_df_sorted)), comparison_df_sorted['Model'])
+plt.xlabel('Accuracy')
+plt.title('Model Accuracy Comparison')
+for i, v in enumerate(comparison_df_sorted['Accuracy']):
+    plt.text(v + 0.005, i, f'{v:.3f}', va='center', fontsize=9)
+plt.xlim(0, 1)
+
+# Create a bar plot for AUC comparison
+plt.subplot(2, 1, 2)
+bars2 = plt.barh(range(len(comparison_df_sorted)), comparison_df_sorted['AUC Score'],
+                 color=['red' if 'Original' in t else 'blue' if 'Tuned' in t else 'green'
+                        for t in comparison_df_sorted['Type']])
+plt.yticks(range(len(comparison_df_sorted)), comparison_df_sorted['Model'])
+plt.xlabel('AUC Score')
+plt.title('Model AUC Score Comparison')
+for i, v in enumerate(comparison_df_sorted['AUC Score']):
+    plt.text(v + 0.005, i, f'{v:.3f}', va='center', fontsize=9)
+plt.xlim(0, 1)
+
+plt.tight_layout()
+plt.savefig('visualizations/model_performance_comparison.png', dpi=300, bbox_inches='tight')
+plt.close()
+print("Model performance comparison plot saved as 'visualizations/model_performance_comparison.png'")
+
+# Create a detailed comparison plot for original vs tuned models
+if 'comparison_detail_df' in locals():
+    plt.figure(figsize=(14, 10))
+
+    # Plot original vs tuned accuracy
+    plt.subplot(2, 2, 1)
+    x = np.arange(len(comparison_detail_df))
+    width = 0.35
+    plt.bar(x - width/2, comparison_detail_df['Original_Accuracy'], width, label='Original', alpha=0.8)
+    plt.bar(x + width/2, comparison_detail_df['Tuned_Accuracy'], width, label='Tuned', alpha=0.8)
+    plt.xlabel('Model')
+    plt.ylabel('Accuracy')
+    plt.title('Original vs Tuned Model Accuracy')
+    plt.xticks(x, comparison_detail_df['Model'], rotation=45, ha='right')
+    plt.legend()
+    plt.ylim(0, 1)
+
+    # Plot original vs tuned AUC
+    plt.subplot(2, 2, 2)
+    plt.bar(x - width/2, comparison_detail_df['Original_AUC'], width, label='Original', alpha=0.8)
+    plt.bar(x + width/2, comparison_detail_df['Tuned_AUC'], width, label='Tuned', alpha=0.8)
+    plt.xlabel('Model')
+    plt.ylabel('AUC Score')
+    plt.title('Original vs Tuned Model AUC')
+    plt.xticks(x, comparison_detail_df['Model'], rotation=45, ha='right')
+    plt.legend()
+    plt.ylim(0, 1)
+
+    # Plot accuracy improvement
+    plt.subplot(2, 2, 3)
+    plt.bar(x, comparison_detail_df['Accuracy_Improvement'],
+            color=['green' if imp > 0 else 'red' for imp in comparison_detail_df['Accuracy_Improvement']])
+    plt.xlabel('Model')
+    plt.ylabel('Accuracy Improvement')
+    plt.title('Accuracy Improvement from Tuning')
+    plt.xticks(x, comparison_detail_df['Model'], rotation=45, ha='right')
+    plt.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+
+    # Plot AUC improvement
+    plt.subplot(2, 2, 4)
+    plt.bar(x, comparison_detail_df['AUC_Improvement'],
+            color=['green' if imp > 0 else 'red' for imp in comparison_detail_df['AUC_Improvement']])
+    plt.xlabel('Model')
+    plt.ylabel('AUC Improvement')
+    plt.title('AUC Improvement from Tuning')
+    plt.xticks(x, comparison_detail_df['Model'], rotation=45, ha='right')
+    plt.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+
+    plt.tight_layout()
+    plt.savefig('visualizations/original_vs_tuned_comparison.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    print("Original vs Tuned comparison plot saved as 'visualizations/original_vs_tuned_comparison.png'")
+
 # Confusion Matrix
 try:
     plt.figure(figsize=(8, 6))
@@ -421,9 +576,13 @@ try:
     plt.title(f'Confusion Matrix - {best_model_name}')
     plt.ylabel('Actual')
     plt.xlabel('Predicted')
-    plt.show()
-except:
-    print("Could not display confusion matrix plot.")
+    plt.tight_layout()
+    # Save the plot instead of showing
+    plt.savefig('confusion_matrix.png', dpi=300, bbox_inches='tight')
+    plt.close()  # Close the figure to free memory
+    print("Confusion matrix plot saved as 'confusion_matrix.png'")
+except Exception as e:
+    print(f"Could not create confusion matrix plot: {e}")
 
 # %%
 # ## Final Predictions on Testing Data
@@ -450,7 +609,7 @@ print("First 10 rows of updated testing data:")
 print(test_predictions_df.head(10))
 
 # Save the updated testing data with predictions
-output_file_path = '/home/taranarmo/ironhack/week7/nlp-project/project-3-nlp/testing_data_with_predictions.csv'
+output_file_path = 'testing_data_with_predictions.csv'
 test_predictions_df.to_csv(output_file_path, sep='\t', header=False, index=False)
 print(f"\nPredictions saved to: {output_file_path}")
 
