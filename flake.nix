@@ -77,6 +77,7 @@
               virtualenv
               pkgs.uv
               pkgs.zsh
+              pkgs.marp-cli
             ];
             env = {
               UV_NO_SYNC = "1";
