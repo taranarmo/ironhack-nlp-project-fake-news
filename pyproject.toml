@@ -1,13 +1,18 @@
 [project]
-name = "hello-world"
+name = "nlp-project"
 version = "0.1.0"
-description = "Add your description here"
+description = "NLP Project for Fake News Detection"
 requires-python = ">=3.12"
-dependencies = [ ]
-
-[project.scripts]
-hello = "hello_world:hello"
+dependencies = [
+ "joblib>=1.5.2",
+ "matplotlib>=3.10.7",
+ "nltk>=3.9.2",
+ "numpy>=2.3.5",
+ "pandas>=2.3.3",
+ "scikit-learn>=1.7.2",
+ "xgboost>=3.1.1",
+]
 
 [build-system]
-requires = ["uv_build>=0.9.0,<0.10.0"]
-build-backend = "uv_build"
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
