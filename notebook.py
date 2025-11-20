@@ -578,7 +578,7 @@ try:
     plt.xlabel('Predicted')
     plt.tight_layout()
     # Save the plot instead of showing
-    plt.savefig('confusion_matrix.png', dpi=300, bbox_inches='tight')
+    plt.savefig('visualizations/confusion_matrix.png', dpi=300, bbox_inches='tight')
     plt.close()  # Close the figure to free memory
     print("Confusion matrix plot saved as 'confusion_matrix.png'")
 except Exception as e:
