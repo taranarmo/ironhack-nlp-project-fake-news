@@ -1,0 +1,13 @@
+Model,Accuracy,AUC Score,Type,Best_Params
+Logistic Regression,0.9367588932806324,0.984317383538068,Tuned,"{'C': 10, 'penalty': 'l2', 'solver': 'liblinear'}"
+Random Forest,0.9120187381056947,0.9716030899797011,Tuned,"{'max_depth': None, 'min_samples_leaf': 1, 'min_samples_split': 2, 'n_estimators': 100}"
+SVM,0.9437856829161178,0.9862245554550807,Tuned,"{'C': 10, 'gamma': 'scale', 'kernel': 'rbf'}"
+Multinomial Naive Bayes,0.9303176694481042,0.9813249523410783,Tuned,{'alpha': 1.0}
+XGBoost,0.896354852876592,0.9680940463668546,Tuned,"{'learning_rate': 0.2, 'max_depth': 10, 'n_estimators': 200}"
+Logistic Regression,0.930171277997365,0.9822138705907991,Original,N/A
+Random Forest,0.9120187381056947,0.9716030899797011,Original,N/A
+SVM,0.9418825940565071,0.9856970471201313,Original,N/A
+Multinomial Naive Bayes,0.9303176694481042,0.9813249523410783,Original,N/A
+XGBoost,0.8802517932952716,0.9561417378905158,Original,N/A
+Logistic Regression (BoW),0.9367588932806324,0.9842613596391134,Bag of Words,N/A
+Multinomial Naive Bayes (BoW),0.9323671497584541,0.9816865767424462,Bag of Words,N/A
